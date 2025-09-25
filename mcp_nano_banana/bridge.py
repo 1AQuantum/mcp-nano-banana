@@ -10,7 +10,12 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 import base64
 
-from nano_banana_server import nano_banana, ImageGenerationRequest, ImageEditRequest, ImageBlendRequest
+from .nano_banana_server import (
+    nano_banana,
+    ImageGenerationRequest,
+    ImageEditRequest,
+    ImageBlendRequest,
+)
 
 class NanoBananaBridge:
     """Bridge for AI assistant integration"""

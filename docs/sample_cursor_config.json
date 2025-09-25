@@ -3,10 +3,9 @@
     "nano-banana": {
       "type": "stdio",
       "command": "/usr/bin/env",
-      "args": ["python3", "-m", "src"],
+      "args": ["python3", "-m", "mcp_nano_banana"],
       "cwd": "/ABS/PATH/TO/mcp-nano-banana",
       "env": {
-        "PYTHONPATH": "/ABS/PATH/TO/mcp-nano-banana",
         "NANO_BANANA_OUTPUT_DIR": "/ABS/PATH/TO/mcp_generated_images"
       }
     }

@@ -9,6 +9,15 @@ python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -e .
+```
+
+Configure credentials (either export env vars or create the config file):
+
+```bash
+export GEMINI_API_KEY="YOUR_GEMINI_KEY"              # required if no config file
+export NANO_BANANA_OUTPUT_DIR="/absolute/output/dir" # optional override
+export GENAI_TEXT_MODEL="models/gemini-2.5-flash"          # optional (defaults to this, with fallbacks)
+export GENAI_IMAGE_MODEL="models/gemini-2.5-flash-image-preview" # optional image override
 
 cat > ~/.nano_banana_config.json <<'EOF'
 {
@@ -36,16 +45,16 @@ export NANO_BANANA_OUTPUT_DIR="/absolute/path/you/prefer"
 
 ## Model Selection
 
-The server defaults to `gemini-2.5-flash-image-preview`. To override:
+Set the image or text model via environment variables (the text tool will fall back through Gemini 2.x IDs if the chosen one is unavailable):
 
 ```bash
 export GENAI_IMAGE_MODEL="models/gemini-2.5-flash-image-preview"
-# or another available image-capable model from list_models
+export GENAI_TEXT_MODEL="models/gemini-2.5-flash"
 ```
 
 ## Claude Code Integration
 
-Portable `.mcp.json` example:
+Portable `.mcp.json` example targeting the package namespace:
 
 ```json
 {
@@ -53,10 +62,9 @@ Portable `.mcp.json` example:
     "nano-banana": {
       "type": "stdio",
       "command": "/usr/bin/env",
-      "args": ["python3", "-m", "src"],
+      "args": ["python3", "-m", "mcp_nano_banana"],
       "cwd": "/ABS/PATH/TO/mcp-nano-banana",
       "env": {
-        "PYTHONPATH": "/ABS/PATH/TO/mcp-nano-banana",
         "NANO_BANANA_OUTPUT_DIR": "/ABS/PATH/TO/mcp_generated_images"
       }
     }
@@ -121,17 +129,15 @@ You can replace `command` with `/ABS/PATH/TO/.venv/bin/mcp-nano-banana` if the c
 }
 ```
 
-```
-
 ## Troubleshooting
 
 - Ensure the console script is on PATH: `mcp-nano-banana --help`
 - Verify credentials: `echo $GEMINI_API_KEY`
 - If no images are saved, set a preview model: `export GENAI_IMAGE_MODEL="models/gemini-2.5-flash-image-preview"`
 - Check write permissions or override output dir: `export NANO_BANANA_OUTPUT_DIR=...`
+- Text outputs look truncated: raise `max_output_tokens` or choose another accessible Gemini 2.x `GENAI_TEXT_MODEL`.
 
 ## References
 
 - Claude MCP docs: https://docs.claude.com/en/docs/mcp
 - MCP specification (2025‑06‑18): https://modelcontextprotocol.io/specification/2025-06-18
-```

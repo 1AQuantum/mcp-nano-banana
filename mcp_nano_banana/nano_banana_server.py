@@ -64,11 +64,11 @@ class NanoBananaMCP:
         self.include_base64 = os.getenv('NANO_BANANA_INCLUDE_BASE64', 'false').lower() in {'1', 'true', 'yes', 'on'}
         # Default to Gemini 2.5 Flash Image (preview) if available
         # Allow override via environment variable GENAI_IMAGE_MODEL
-        self.model = os.getenv("GENAI_IMAGE_MODEL", "gemini-2.5-flash-image-preview")
+        self.model = os.getenv("GENAI_IMAGE_MODEL", "models/gemini-2.5-flash-image-preview")
         self.image_models = [
-            "gemini-2.5-flash-image",
-            "gemini-2.5-flash-image-preview",
-            "gemini-2.0-flash-exp-image-generation",
+            "models/gemini-2.5-flash",
+            "models/gemini-2.5-flash-image-preview",
+            "models/gemini-2.0-flash-exp-image-generation",
         ]
         self._initialize_client()
         # Resolve output directory: env > config file > default (one level above MCP dir)
@@ -132,8 +132,6 @@ class NanoBananaMCP:
             pass
 
         # 4) Default one level above MCP repo directory if not in site-packages
-        # __file__ = <...>/mcp-nano-banana/src/nano_banana_server.py
-        # parent_of_mcp = Path(__file__).resolve().parent.parent.parent
         try:
             parent_of_mcp = Path(__file__).resolve().parent.parent.parent
             parent_str = str(parent_of_mcp).lower()
@@ -151,11 +149,10 @@ class NanoBananaMCP:
         if not self.client:
             return ImageGenerationResponse(
                 success=False,
-                message="API key not configured. Run setup_nano_banana.py first."
+                message="API key not configured. See README 'Configure credentials' section."
             )
 
         try:
-            # Enhance prompt with style and quality modifiers
             enhanced_prompt = self._enhance_prompt(request)
 
             logger.info(f"Generating image: {request.prompt[:50]}...")
@@ -178,15 +175,12 @@ class NanoBananaMCP:
             )
 
             if response:
-                # Save image with timestamp
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"generated_{timestamp}.png"
                 output_path = self.output_dir / filename
 
-                # Extract and save image data
                 image_data_b64, mime_type = self._extract_first_image_base64_and_mime(response)
                 if image_data_b64:
-                    # Adjust extension by mime if available
                     ext = 'png'
                     if mime_type:
                         guessed_ext = mimetypes.guess_extension(mime_type) or '.png'
@@ -240,7 +234,6 @@ class NanoBananaMCP:
 
             logger.info(f"Editing image: {request.image_path}")
 
-            # Prepare image bytes
             with open(request.image_path, 'rb') as infile:
                 image_bytes = infile.read()
             mime_type, _ = mimetypes.guess_type(request.image_path)
@@ -269,31 +262,31 @@ class NanoBananaMCP:
             )
 
             if response:
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    image_data_b64, mime_type = self._extract_first_image_base64_and_mime(response)
-                    if image_data_b64:
-                        ext = 'png'
-                        if mime_type:
-                            guessed_ext = mimetypes.guess_extension(mime_type) or '.png'
-                            ext = guessed_ext.lstrip('.')
-                            if not ext:
-                                ext = 'png'
-                        filename = f"edited_{timestamp}.{ext}"
-                        output_path = self.output_dir / filename
-                        with open(output_path, 'wb') as f:
-                            f.write(base64.b64decode(image_data_b64))
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                image_data_b64, mime_type = self._extract_first_image_base64_and_mime(response)
+                if image_data_b64:
+                    ext = 'png'
+                    if mime_type:
+                        guessed_ext = mimetypes.guess_extension(mime_type) or '.png'
+                        ext = guessed_ext.lstrip('.')
+                        if not ext:
+                            ext = 'png'
+                    filename = f"edited_{timestamp}.{ext}"
+                    output_path = self.output_dir / filename
+                    with open(output_path, 'wb') as f:
+                        f.write(base64.b64decode(image_data_b64))
 
-                    return ImageGenerationResponse(
-                        success=True,
-                        image_path=str(output_path),
-                        image_data=image_data_b64 if self.include_base64 else None,
-                        message=f"Image edited successfully: {filename}",
-                        metadata={
-                            "original": request.image_path,
-                            "instructions": request.instructions,
-                            "timestamp": timestamp
-                        }
-                    )
+                return ImageGenerationResponse(
+                    success=True,
+                    image_path=str(output_path),
+                    image_data=image_data_b64 if self.include_base64 else None,
+                    message=f"Image edited successfully: {filename}",
+                    metadata={
+                        "original": request.image_path,
+                        "instructions": request.instructions,
+                        "timestamp": timestamp
+                    }
+                )
 
         except Exception as e:
             logger.error(f"Error editing image: {e}")
@@ -311,7 +304,6 @@ class NanoBananaMCP:
             )
 
         try:
-            # Validate all images exist
             for path in request.image_paths:
                 if not Path(path).exists():
                     return ImageGenerationResponse(
@@ -323,11 +315,6 @@ class NanoBananaMCP:
 
             parts: List[types.Part] = []
             for path in request.image_paths:
-                if not Path(path).exists():
-                    return ImageGenerationResponse(
-                        success=False,
-                        message=f"Image not found: {path}"
-                    )
                 with open(path, 'rb') as infile:
                     image_bytes = infile.read()
                 mime_type, _ = mimetypes.guess_type(path)
@@ -335,7 +322,6 @@ class NanoBananaMCP:
                     mime_type = 'image/png'
                 parts.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
 
-            # Add blending instructions as text
             blend_prompt = self._create_blend_prompt(request)
             parts.append(types.Part.from_text(text=blend_prompt))
 
@@ -430,7 +416,6 @@ class NanoBananaMCP:
 
     def _extract_first_image_base64_and_mime(self, response) -> Tuple[Optional[str], Optional[str]]:
         """Extract the first image as base64 string and its mime type from a google-genai response"""
-        # New SDK may return `images` list directly
         try:
             images = getattr(response, 'images', None)
             if images:
@@ -443,7 +428,6 @@ class NanoBananaMCP:
         except Exception:
             pass
 
-        # Or via candidates -> content.parts -> inline_data
         try:
             if getattr(response, 'candidates', None):
                 candidate0 = response.candidates[0]
@@ -459,7 +443,6 @@ class NanoBananaMCP:
         except Exception:
             pass
 
-        # No image found
         return None, None
 
 # Create singleton instance
@@ -613,7 +596,7 @@ async def get_api_status() -> str:
     }
 
     if not status["configured"]:
-        status["setup_instructions"] = "Run 'python setup_nano_banana.py' to configure API key"
+        status["setup_instructions"] = "Create ~/.nano_banana_config.json or set GEMINI_API_KEY"
 
     return json.dumps(status, indent=2)
 

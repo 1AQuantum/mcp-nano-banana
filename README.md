@@ -1,5 +1,9 @@
 # MCP Nano Banana - Image Generation Server
 
+## What is the Model Context Protocol?
+
+Nano Banana exposes Gemini 2.5 Flash Image capabilities through the Model Context Protocol (MCP)—an open-source standard that connects AI applications to external tools, data, or workflows in a consistent way. MCP acts like a USB-C port for AI assistants: hosts such as Claude Code or Cursor can attach this server to generate, edit, and blend images without bespoke integrations. Each instance runs the Nano Banana presets by default for image-focused workflows. For a deeper understanding of MCP’s architecture and ecosystem benefits, see: [Model Context Protocol – Getting Started](https://modelcontextprotocol.io/docs/getting-started/intro).
+
 ## Quick Start
 
 ### 1. Install (recommended: isolated virtual environment)
@@ -15,21 +19,27 @@ pip install -e .
 
 ### 2. Configure credentials & output path
 
-Nano Banana reads `~/.nano_banana_config.json`. Create it with your Gemini API key:
+Nano Banana uses a simple configuration hierarchy:
 
-```bash
-cat > ~/.nano_banana_config.json <<'EOF'
-{
-  "api_key": "YOUR_GEMINI_KEY",
-  "output_dir": "~/mcp_generated_images"
-}
-EOF
-```
+- **Environment variable (fastest):**
+  ```bash
+  export GEMINI_API_KEY="YOUR_GEMINI_KEY"
+  export NANO_BANANA_OUTPUT_DIR="/absolute/path/for/images"  # optional
+  ```
+- **Config file (portable default):** create `~/.nano_banana_config.json` so the server works across shells:
+  ```bash
+  cat > ~/.nano_banana_config.json <<'EOF'
+  {
+    "api_key": "YOUR_GEMINI_KEY",
+    "output_dir": "~/mcp_generated_images"
+  }
+  EOF
+  ```
 
 ### 3. (Optional) override per session
 
-- `GENAI_IMAGE_MODEL` env var to pick a different Gemini model.
-- `NANO_BANANA_OUTPUT_DIR` env var to change output folder.
+- `GENAI_IMAGE_MODEL` env var to pick a different Gemini image model (defaults to `models/gemini-2.5-flash-image-preview`).
+- `NANO_BANANA_OUTPUT_DIR` env var to change output folder (overrides config file).
 
 ### 4. Smoke test
 
@@ -47,10 +57,9 @@ mcp-nano-banana  # should start and wait on stdio; Ctrl+C to exit
     "nano-banana": {
       "type": "stdio",
       "command": "/usr/bin/env",
-      "args": ["python3", "-m", "src"],
+      "args": ["python3", "-m", "mcp_nano_banana"],
       "cwd": "/ABS/PATH/TO/mcp-nano-banana",
       "env": {
-        "PYTHONPATH": "/ABS/PATH/TO/mcp-nano-banana",
         "NANO_BANANA_OUTPUT_DIR": "/ABS/PATH/TO/mcp_generated_images"
       }
     }
@@ -72,7 +81,7 @@ Point the MCP entry at whichever interpreter/shell you use. Example:
 }
 ```
 
-or equivalently the `/usr/bin/env python3 -m src` variant with `cwd` as above.
+or equivalently the `/usr/bin/env python3 -m mcp_nano_banana` variant with `cwd` as above.
 
 ## Tools (API)
 
@@ -131,10 +140,28 @@ Example:
 }
 ```
 
+### generate_text
+
+- Args: prompt (required), system_instruction?, temperature?, max_output_tokens?
+- Returns: { success, text, message, metadata }
+
+Example:
+
+```json
+{
+  "name": "generate_text",
+  "arguments": {
+    "prompt": "Draft three taglines for a space-themed banana brand.",
+    "system_instruction": "Keep each tagline under 12 words.",
+    "temperature": 0.8
+  }
+}
+```
+
 ## Resources
 
 - image://gallery/recent
-- config://api/status
+- config://api/status (now includes active image and text models)
 
 ## MCP Overview and Security
 
@@ -152,8 +179,9 @@ Transport: stdio (recommended for portability). The console script `mcp-nano-ban
 
 Environment variables:
 
-- GEMINI_API_KEY: API key for Google GenAI (required)
-- GENAI_IMAGE_MODEL: model id (default: gemini-2.5-flash-image-preview; you may use fully qualified name e.g. models/gemini-2.5-flash-image-preview)
+- GEMINI_API_KEY: API key for Google GenAI (required if config file absent)
+- GENAI_IMAGE_MODEL: image model id (default: `models/gemini-2.5-flash-image-preview`; other Gemini IDs will work as long as they support image generation)
+- GENAI_TEXT_MODEL: text model id (default: `models/gemini-2.5-flash`; the server automatically falls back to other Gemini 2.x IDs if the first choice is unavailable)
 - NANO_BANANA_OUTPUT_DIR: absolute output directory (default: ../mcp_generated_images or ~/mcp_generated_images fallback)
 
 Optional file: `~/.nano_banana_config.json`
@@ -204,6 +232,19 @@ Optional file: `~/.nano_banana_config.json`
 }
 ```
 
+### Generate text (tool call shape)
+
+```json
+{
+  "name": "generate_text",
+  "arguments": {
+    "prompt": "Summarise the mission of Nano Banana in two sentences",
+    "system_instruction": "Adopt a friendly marketing tone",
+    "max_output_tokens": 200
+  }
+}
+```
+
 ### Resource access
 
 ```text
@@ -216,8 +257,9 @@ Optional file: `~/.nano_banana_config.json`
 - Tool response too large: If your client enforces strict size limits, keep base64 disabled (default). You can always fetch images from disk via the returned path or the recent gallery resource.
 
 - Command not found: ensure your Python environment's bin is on PATH, then re‑install: `pip install -e .`
-- No images saved: set a preview model `export GENAI_IMAGE_MODEL="models/gemini-2.5-flash-image-preview"` or check access.
+- No images saved: set an explicit model `export GENAI_IMAGE_MODEL="models/gemini-2.5-flash-image-preview"` or check access.
 - Permission errors writing files: set `NANO_BANANA_OUTPUT_DIR` to a writable location.
+- Text output seems short: increase `max_output_tokens` or set `GENAI_TEXT_MODEL` to another accessible ID.
 
 ## License
 
