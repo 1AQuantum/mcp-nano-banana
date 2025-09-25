@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Config
+.env
+.nano_banana_config.json
+
+# Output
+mcp_generated_images/
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

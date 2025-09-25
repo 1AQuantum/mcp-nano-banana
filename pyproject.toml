@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-nano-banana"
+version = "0.1.0"
+description = "Portable MCP server for Gemini image generation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{ name = "Nano Banana" }]
+dependencies = [
+  "mcp>=1.0.0",
+  "google-generativeai>=0.8.5",
+  "google-genai>=1.30.0",
+  "pillow>=11.0.0",
+  "pydantic>=2.0.0",
+  "aiofiles>=23.0.0",
+  "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+mcp-nano-banana = "src.__main__:main"
+
+[tool.setuptools]
+packages = ["src"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"src" = [
+  "resources/MCP_Best_Practices_Nano_Banana.md"
+]
+
+
